@@ -1,0 +1,15 @@
+Flask
+Werkzeug
+click
+dominate
+Flask-Bootstrap
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+itsdangerous
+Jinja2
+MarkupSafe
+SQLAlchemy
+visitor
+Werkzeug
+WTForms
