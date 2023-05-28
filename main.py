@@ -1,7 +1,7 @@
 from flask import Flask, render_template, redirect, url_for, flash, abort
 from flask_bootstrap import Bootstrap
 from flask_ckeditor import CKEditor
-from datetime import date
+from datetime import date, datetime
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
@@ -17,7 +17,6 @@ Bootstrap(app)
 gravatar = Gravatar(app, size=100, rating='g', default='retro', force_default=False, force_lower=False, use_ssl=False,
                     base_url=None)
 
-
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///blog.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
@@ -29,6 +28,10 @@ login_manager.init_app(app)
 def load_user(user_id):
     return User.query.get(int(user_id))
 
+
+@app.context_processor
+def inject_year():
+    return {'current_year': datetime.now().year}
 
 
 class User(UserMixin, db.Model):
@@ -62,9 +65,6 @@ class Comment(db.Model):
     parent_post = relationship("BlogPost", back_populates="comments")
     comment_author = relationship("User", back_populates="comments")
     text = db.Column(db.Text, nullable=False)
-
-
-db.create_all()
 
 
 def admin_only(f):
@@ -152,12 +152,18 @@ def show_post(post_id):
         new_comment = Comment(
             text=form.comment_text.data,
             comment_author=current_user,
-            parent_post=requested_post
+            parent_post=requested_post,
+            current_year=datetime.now().year
         )
         db.session.add(new_comment)
         db.session.commit()
 
-    return render_template("post.html", post=requested_post, form=form, current_user=current_user)
+    return render_template(
+        "post.html",
+        post=requested_post,
+        form=form,
+        current_user=current_user
+    )
 
 
 @app.route("/about")
@@ -211,7 +217,11 @@ def edit_post(post_id):
         db.session.commit()
         return redirect(url_for("show_post", post_id=post.id))
 
-    return render_template("make-post.html", form=edit_form, is_edit=True, current_user=current_user)
+    return render_template(
+        "make-post.html",
+        form=edit_form,
+        is_edit=True,
+        current_user=current_user)
 
 
 @app.route("/delete/<int:post_id>")
@@ -225,4 +235,6 @@ def delete_post(post_id):
 
 
 if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(host='0.0.0.0', port=5000)
